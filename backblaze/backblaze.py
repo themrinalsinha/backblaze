@@ -1,6 +1,5 @@
 from requests import get
 from base64   import b64encode
-from json     import loads
 
 from .utils   import _get_output
 
@@ -12,7 +11,18 @@ class Backblaze(object):
         self.auth_string    = 'Basic ' + b64encode(self.id_and_key.encode()).decode()
         self.headers        = {'Authorization' : self.auth_string}
 
+        self.api_url        = None
+        self.auth_token     = None
+        self.download_url   = None
+
     def validate(self):
         request = get('https://api.backblazeb2.com/b2api/v1/b2_authorize_account',
                   headers = self.headers)
-        print(request)
+        if request.ok:
+            response          = request.json()
+            self.api_url      = response.get('apiUrl')
+            self.auth_token   = response.get('authorizationToken')
+            self.download_url = response.get('downloadUrl')
+            return True
+        return False
+

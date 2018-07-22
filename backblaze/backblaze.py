@@ -38,3 +38,13 @@ class Backblaze(object):
                            ['buckets'] if bkt['bucketName'] == bucket_name][0]
                 return request.json()
             return False
+
+    def _upload_url(bucket_name):
+        bucket_id = self.buckets(bucket_name)
+        request   = get('%s/b2api/v1/b2_get_upload_url' % self.api_url,
+                    params  = {'bucketId' : bucket_id},
+                    headers = {'Authorization' : self.auth_token})
+        return request.json()['uploadUrl']
+
+    def upload(self, bucket_name, upload_file):
+        self.upload_url = _upload_url(bucket_name)

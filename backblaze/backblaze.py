@@ -13,6 +13,7 @@ class Backblaze(object):
 
         self.api_url        = None
         self.auth_token     = None
+        self.upload_url     = None
         self.download_url   = None
 
     def validate(self):
@@ -26,3 +27,14 @@ class Backblaze(object):
             return True
         return False
 
+    def buckets(self, bucket_name=None):
+        if self.validate():
+            request = get('%s/b2api/v1/b2_list_buckets' % self.api_url,
+                params  = {'accountId' : self.account_id},
+                headers = {'Authorization' : self.auth_token})
+            if request.ok:
+                if bucket_name:
+                    return [bkt['bucketId'] for bkt in request.json()
+                           ['buckets'] if bkt['bucketName'] == bucket_name][0]
+                return request.json()
+            return False

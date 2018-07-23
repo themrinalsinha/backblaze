@@ -1,5 +1,7 @@
-from requests import get
+from requests import get, post
 from base64   import b64encode
+from hashlib  import sha1
+from os       import path
 
 from .utils   import _get_output
 
@@ -11,10 +13,11 @@ class Backblaze(object):
         self.auth_string    = 'Basic ' + b64encode(self.id_and_key.encode()).decode()
         self.headers        = {'Authorization' : self.auth_string}
 
-        self.api_url        = None
-        self.auth_token     = None
-        self.upload_url     = None
-        self.download_url   = None
+        self.api_url           = None
+        self.auth_token        = None
+        self.upload_url        = None
+        self.download_url      = None
+        self.upload_auth_token = None
 
     def validate(self):
         request = get('https://api.backblazeb2.com/b2api/v1/b2_authorize_account',
@@ -39,12 +42,26 @@ class Backblaze(object):
                 return request.json()
             return False
 
-    def _upload_url(bucket_name):
+    def _upload_url(self, bucket_name):
         bucket_id = self.buckets(bucket_name)
         request   = get('%s/b2api/v1/b2_get_upload_url' % self.api_url,
                     params  = {'bucketId' : bucket_id},
                     headers = {'Authorization' : self.auth_token})
-        return request.json()['uploadUrl']
+        self.upload_url        = request.json()['uploadUrl']
+        self.upload_auth_token = request.json()['authorizationToken']
 
     def upload(self, bucket_name, upload_file):
-        self.upload_url = _upload_url(bucket_name)
+        file_data = open(upload_file, 'rb').read()
+        sha1_file = sha1(file_data).hexdigest()
+        file_name = path.basename(upload_file)
+        self._upload_url(bucket_name)
+
+        request = post(self.upload_url, files = {'file' : file_data},
+            headers = {'Authorization'     : self.upload_auth_token,
+                       'X-Bz-File-Name'    : file_name,
+                       'Content-Type'      : '*/*',
+                       'User-Agent'        : 'rclone/v1.30',
+                       'X-Bz-Content-Sha1' : sha1_file})
+
+        print(request)
+        import pdb; pdb.set_trace()

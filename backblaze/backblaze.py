@@ -50,7 +50,7 @@ class Backblaze(object):
         self.upload_url        = request.json()['uploadUrl']
         self.upload_auth_token = request.json()['authorizationToken']
 
-    def upload(self, bucket_name, upload_file):
+    def upload(self, bucket_name, upload_file, author_name = 'Unknown'):
         file_data = open(upload_file, 'rb').read()
         sha1_file = sha1(file_data).hexdigest()
         file_name = path.basename(upload_file)
@@ -60,8 +60,7 @@ class Backblaze(object):
             headers = {'Authorization'     : self.upload_auth_token,
                        'X-Bz-File-Name'    : file_name,
                        'Content-Type'      : '*/*',
-                       'User-Agent'        : 'rclone/v1.30',
+                       'X-Bz-Info-Author'  : author_name,
                        'X-Bz-Content-Sha1' : sha1_file})
 
         print(request)
-        import pdb; pdb.set_trace()

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from requests import get, post
 from base64   import b64encode
 from hashlib  import sha1
@@ -64,3 +66,14 @@ class Backblaze(object):
                        'X-Bz-Content-Sha1' : sha1_file})
 
         print(request)
+        import pdb; pdb.set_trace()
+
+    def file_info(self, file_id):
+        if self.validate():
+            request = get('%s/b2api/v1/b2_get_file_info' % self.api_url,
+                    params  = {'fileId'        : file_id},
+                    headers = {'Authorization' : self.auth_token})
+            if request.ok:
+                file_name      = request.json()['fileName']
+                content_lenght = request.json()['contentLength']
+                return {'content_lenght' : content_lenght, 'file_name' : file_name}

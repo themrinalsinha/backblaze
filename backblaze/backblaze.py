@@ -66,7 +66,6 @@ class Backblaze(object):
                        'X-Bz-Content-Sha1' : sha1_file})
 
         print(request)
-        import pdb; pdb.set_trace()
 
     def file_info(self, file_id):
         if self.validate():

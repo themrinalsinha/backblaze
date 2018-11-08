@@ -20,6 +20,7 @@ class Backblaze(object):
         self.upload_url        = None
         self.download_url      = None
         self.upload_auth_token = None
+        self.validate()
 
     def validate(self):
         request = get('https://api.backblazeb2.com/b2api/v1/b2_authorize_account',
@@ -33,16 +34,15 @@ class Backblaze(object):
         return False
 
     def buckets(self, bucket_name=None):
-        if self.validate():
-            request = get('%s/b2api/v1/b2_list_buckets' % self.api_url,
-                params  = {'accountId' : self.account_id},
-                headers = {'Authorization' : self.auth_token})
-            if request.ok:
-                if bucket_name:
-                    return [bkt['bucketId'] for bkt in request.json()
-                           ['buckets'] if bkt['bucketName'] == bucket_name][0]
-                return request.json()
-            return False
+        request = get('%s/b2api/v1/b2_list_buckets' % self.api_url,
+            params  = {'accountId' : self.account_id},
+            headers = {'Authorization' : self.auth_token})
+        if request.ok:
+            if bucket_name:
+                return [bkt['bucketId'] for bkt in request.json()
+                        ['buckets'] if bkt['bucketName'] == bucket_name][0]
+            return request.json()
+        return False
 
     def _upload_url(self, bucket_name):
         bucket_id = self.buckets(bucket_name)
@@ -62,18 +62,27 @@ class Backblaze(object):
         request = post(self.upload_url, files = {'file' : file_data},
             headers = {'Authorization'     : self.upload_auth_token,
                        'X-Bz-File-Name'    : file_name,
-                       'Content-Type'      : '*/*',
+                    #    'Content-Length'    : len(file_)
                        'X-Bz-Info-Author'  : author_name,
                        'X-Bz-Content-Sha1' : sha1_file})
 
         print(request)
 
     def file_info(self, file_id):
-        if self.validate():
-            request = get('%s/b2api/v1/b2_get_file_info' % self.api_url,
-                    params  = {'fileId'        : file_id},
+        request = get('%s/b2api/v1/b2_get_file_info' % self.api_url,
+                params  = {'fileId'        : file_id},
+                headers = {'Authorization' : self.auth_token})
+        if request.ok:
+            file_name      = request.json()['fileName']
+            content_lenght = request.json()['contentLength']
+            return {'content_lenght' : content_lenght, 'file_name' : file_name}
+
+    def files(self, bucket_name, only_names=False):
+        request = get('%s/b2api/v2/b2_list_file_names' % self.api_url,
+                    params  = {'bucketId' : self.buckets(bucket_name)},
                     headers = {'Authorization' : self.auth_token})
-            if request.ok:
-                file_name      = request.json()['fileName']
-                content_lenght = request.json()['contentLength']
-                return {'content_lenght' : content_lenght, 'file_name' : file_name}
+        if request.ok:
+            if only_names:
+                return [f.get('fileName') for f in request.json()['files']]
+            return request.json()['files']
+        return False
